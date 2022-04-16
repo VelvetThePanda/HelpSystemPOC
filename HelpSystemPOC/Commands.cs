@@ -17,5 +17,8 @@ public class Commands : CommandGroup
     {
         [Command("command")]
         public async Task<IResult> Command() => default;
+
+        [Command("command")]
+        public async Task<IResult> CommandOverload() => default;
     }
 }
