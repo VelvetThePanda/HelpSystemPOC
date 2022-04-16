@@ -29,12 +29,46 @@ while (!exit)
     if (!result.IsDefined(out var commands))
     {
         Console.Error.WriteLine("No dice, sorry.");
-        
         continue;
     }
+
+    var commandList = commands.ToList();
     
-    Console.WriteLine($"Found {commands.Count()} command(s):");
-    
-    foreach (var foundCommand in commands)
-        Console.WriteLine($"  {foundCommand.Key} - {(foundCommand is IParentNode ? "Group" : "Command")}");
+    var executable = false;
+
+    if (commands.Length is 2 && string.Equals(commands[0].Key, commands[1].Key, StringComparison.OrdinalIgnoreCase))
+        executable = commands[0] is IParentNode ^ commands[1] is IParentNode;
+
+    if (executable)
+        commandList = (commands.First(c => c is IParentNode) as IParentNode).Children.ToList();
+
+    Console.WriteLine($"Found {commandList.Distinct().Count()} command(s):");
+
+    Console.WriteLine($"Parent: {(commandList[0].Parent as IChildNode)?.Key ?? "Root"}" + (executable ? " (executable)" : ""));
+
+    for (var i = 0; i < commandList.Count; i++)
+    {
+        var foundCommand = commandList[i];
+        var matching = commandList.Where(cn => cn.Key == foundCommand.Key);
+
+        if (matching.Count() > 1)
+        {
+            if (matching.All(c => c is not IParentNode))
+            {
+                Console.WriteLine($"   {foundCommand.Key} - Command ({matching.Count()} overloads)");
+            }
+            else
+            {
+                var group = matching.First(c => c is IParentNode) as IParentNode;
+                
+                Console.WriteLine($"   {foundCommand.Key} - Group (executable) ({group.Children.Count()} children)");
+            }
+            
+            i += matching.Count() - 1;
+            continue;
+        }
+        
+        Console.WriteLine($"   {foundCommand.Key} - {(foundCommand is IParentNode pn ? $"Group ({pn.Children.Count()} children)" : "Command")}");
+    }
+
 }
