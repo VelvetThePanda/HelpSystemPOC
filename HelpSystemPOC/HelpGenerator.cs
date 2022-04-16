@@ -13,19 +13,19 @@ public class HelpGenerator
         _commands = commands;
     }
 
-    public Result<IEnumerable<IChildNode>> GetMatchingCommands(string command, string? treeName = null)
+    public Result<IChildNode[]> GetMatchingCommands(string command, string? treeName = null)
     {
         if (!_commands.TreeAccessor.TryGetNamedTree(treeName, out var tree))
-            return Result<IEnumerable<IChildNode>>.FromError(new NotFoundError());
+            return Result<IChildNode[]>.FromError(new NotFoundError());
 
         if (string.IsNullOrEmpty(command))
         {
             var res = FindCommandsByName(new(), tree.Root).ToArray();
             
             if (!res.Any())
-                return Result<IEnumerable<IChildNode>>.FromError(new NotFoundError());
+                return Result<IChildNode[]>.FromError(new NotFoundError());
             
-            return Result<IEnumerable<IChildNode>>.FromSuccess(res);
+            return Result<IChildNode[]>.FromSuccess(res);
         }
         else
         {
@@ -33,9 +33,9 @@ public class HelpGenerator
             var res = FindCommandsByName(tokenized, tree.Root).ToArray();
             
             if (!res.Any())
-                return Result<IEnumerable<IChildNode>>.FromError(new NotFoundError());
+                return Result<IChildNode[]>.FromError(new NotFoundError());
             
-            return Result<IEnumerable<IChildNode>>.FromSuccess(res);
+            return Result<IChildNode[]>.FromSuccess(res);
         }
         
         return default;
