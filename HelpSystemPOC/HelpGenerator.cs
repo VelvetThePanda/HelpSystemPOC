@@ -51,15 +51,20 @@ public class HelpGenerator
         
         foreach (var child in parent.Children)
         {
-            if (
-                child.Key.Equals(token, StringComparison.OrdinalIgnoreCase) ||
-                child.Aliases.Any(a => a.Equals(token, StringComparison.OrdinalIgnoreCase))
-               )
+            if (child.Key.Equals(token, StringComparison.OrdinalIgnoreCase) ||
+                child.Aliases.Any(a => a.Equals(token, StringComparison.OrdinalIgnoreCase)))
             {
-                if (TokensRemain() && child is IParentNode nestedParent)
+                if (TokensRemain())
                 {
-                    nested = nestedParent;
-                    break;
+                    if (child is IParentNode nestedParent)
+                    {
+                        nested = nestedParent;
+                        break;
+                    }
+                    else
+                    {
+                        continue;
+                    }
                 }
                 else
                 {
