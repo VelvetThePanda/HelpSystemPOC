@@ -1,4 +1,5 @@
-﻿using HelpSystemPOC;
+﻿using System.Text;
+using HelpSystemPOC;
 using Microsoft.Extensions.DependencyInjection;
 using Remora.Commands.Extensions;
 using Remora.Commands.Trees.Nodes;
@@ -32,43 +33,63 @@ while (!exit)
         continue;
     }
 
-    var commandList = commands.ToList();
+    var output = new StringBuilder();
     
-    var executable = false;
-
-    if (commands.Length is 2 && string.Equals(commands[0].Key, commands[1].Key, StringComparison.OrdinalIgnoreCase))
-        executable = commands[0] is IParentNode ^ commands[1] is IParentNode;
-
-    if (executable)
-        commandList = (commands.First(c => c is IParentNode) as IParentNode).Children.ToList();
-
-    Console.WriteLine($"Found {commandList.Distinct().Count()} command(s):");
-
-    Console.WriteLine($"Parent: {(commandList[0].Parent as IChildNode)?.Key ?? "Root"}" + (executable ? " (executable)" : ""));
-
-    for (var i = 0; i < commandList.Count; i++)
+    if (commands.Length is 1 && commands[0] is IParentNode pn)
     {
-        var foundCommand = commandList[i];
-        var matching = commandList.Where(cn => cn.Key == foundCommand.Key);
+        output.AppendLine($"Found command group: {commands[0].Key} with {pn.Children.Count} children.");
+        foreach (var child in pn.Children)
+            output.AppendLine($"-   {child.Key} - {(child is IParentNode pnc ? $"Group ({pnc.Children.Count()} childen)" : "Command")}");
+        
+        output.AppendLine();
+    }
 
-        if (matching.Count() > 1)
+    var groupedCommands = commands.GroupBy(c => c.Key).ToArray();
+
+    if (groupedCommands.Length is 1)
+    {
+        if (groupedCommands[0].Count() > 1 && groupedCommands[0].FirstOrDefault(gc => gc is IParentNode) is IParentNode gpn)
         {
-            if (matching.All(c => c is not IParentNode))
+            for (var i = 0; i < gpn.Children.Count; i++)
             {
-                Console.WriteLine($"   {foundCommand.Key} - Command ({matching.Count()} overloads)");
+                var child = gpn.Children[i];
+                output.AppendLine($"{child.Key} - Command (overload {i + 1} of {gpn.Children.Count})");
+            }
+        }
+        else
+        {
+            foreach (var subCommand in groupedCommands[0])
+            {
+                output.AppendLine($"{subCommand.Key} - {(subCommand is IParentNode scpn ? $"Group ({scpn.Children.Count()} children)" : "Command")}");
+            }
+        }
+    }
+    else
+    {
+        foreach (var group in groupedCommands)
+        {
+            var groupArray = group.ToArray();
+            
+            if (groupArray.Length > 1 && groupArray.FirstOrDefault(g => g is IParentNode) is IParentNode gpn)
+            {
+                output.AppendLine($"{group.Key} - Group (executable) {gpn.Children.Count()} childen");
+            }
+            else if (groupArray.Length > 1)
+            {
+                for (int i = 0; i < groupArray.Length; i++)
+                {
+                    var child = groupArray[i];
+                    output.AppendLine($"{child.Key} - Command (overload {i + 1} of {groupArray.Length})");
+                }
             }
             else
             {
-                var group = matching.First(c => c is IParentNode) as IParentNode;
-                
-                Console.WriteLine($"   {foundCommand.Key} - Group (executable) ({group.Children.Count()} children)");
+                output.AppendLine($"{group.Key} - {(groupArray[0] is IParentNode cpn ? $"Group ({cpn.Children.Count()} children)" : "Command")}");
             }
-            
-            i += matching.Count() - 1;
-            continue;
         }
-        
-        Console.WriteLine($"   {foundCommand.Key} - {(foundCommand is IParentNode pn ? $"Group ({pn.Children.Count()} children)" : "Command")}");
     }
+
+    
+    Console.WriteLine(output);
 
 }
